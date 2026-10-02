@@ -1,0 +1,119 @@
+{
+ "args": {
+  "lr": 0.03,
+  "steps": 240,
+  "slots": 6000,
+  "layer": 15,
+  "dots": 10,
+  "tag": "aug",
+  "opt": "adam",
+  "protect": 0.9,
+  "anchor": 0.0,
+  "augment": true,
+  "smoke": false
+ },
+ "function_preserving": true,
+ "base": {
+  "teach_em_candidates": 0.206,
+  "known_em_candidates": 0.22071428571428572,
+  "nq_em": 0.056666666666666664,
+  "nq_f1": 0.09876527176527176,
+  "ppl": 27.4327
+ },
+ "dot1_right_after": {
+  "em": 0.94,
+  "f1": 0.9487,
+  "n": 100
+ },
+ "dot_seconds": [
+  75.0,
+  78.5,
+  69.8,
+  78.6,
+  78.7,
+  82.6,
+  79.9,
+  78.4,
+  78.4,
+  84.7
+ ],
+ "after_all": {
+  "dots": [
+   0.96,
+   0.96,
+   0.95,
+   0.97,
+   0.95,
+   1.0,
+   0.93,
+   0.95,
+   0.95,
+   0.99
+  ],
+  "teach_em": 0.961,
+  "teach_fewshot_dots1_2": {
+   "em": 0.735,
+   "f1": 0.752,
+   "n": 200
+  },
+  "known": {
+   "em": 0.8633,
+   "f1": 0.8832,
+   "n": 300
+  },
+  "nq": {
+   "em": 0.0533,
+   "f1": 0.0922,
+   "n": 300
+  },
+  "ppl": 27.8785
+ },
+ "fanout": {
+  "per_dot": {
+   "1": 9,
+   "2": 8,
+   "3": 7,
+   "4": 6,
+   "5": 5,
+   "6": 4,
+   "7": 3,
+   "8": 2,
+   "9": 1,
+   "10": 0
+  },
+  "mean_fraction": 1.0
+ },
+ "ledger_mib": 205.5,
+ "fast_remove_dot1": {
+  "removed": 1,
+  "mode": "fast",
+  "replayed": [],
+  "seconds": 0.0,
+  "dot1": 0.04,
+  "dot2": 0.58,
+  "known": 0.9033
+ },
+ "exact_remove_dot1": {
+  "removed": 1,
+  "mode": "exact",
+  "replayed": [
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "seconds": 717.5,
+  "dot1": 0.06,
+  "dot2": 0.98,
+  "known": 0.8733
+ },
+ "counterfactual_seconds": 718.6,
+ "exact_equals_never_learned": true,
+ "reset_hash_equal": true,
+ "reset_logits_equal_original": true
+}
