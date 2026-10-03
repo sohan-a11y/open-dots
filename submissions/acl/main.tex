@@ -1,25 +1,26 @@
-\documentclass[10pt]{article}
-\usepackage[submit]{tmlr}
+\documentclass[11pt]{article}
+\usepackage[review]{acl}
+\usepackage{times}
+\usepackage{latexsym}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
+\usepackage{microtype}
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{xcolor}
-\usepackage{url}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \newtheorem{proposition}{Proposition}
 \newcommand{\sys}{\textsc{Dots}}
-\usepackage{hyperref}
 \title{DOTS: Exactly Removable Continual Learning for Frozen Language Models via Hyperdimensional Sparse Memory}
-\author{\name Anonymous authors \email Paper under double-blind review}
-\def\month{MM}\def\year{YYYY}\def\openreview{\url{https://openreview.net/forum?id=XXXX}}
+\author{Anonymous ACL submission}
 \begin{document}
 \maketitle
 \begin{abstract}
 A language model that keeps learning after deployment must also be able to forget on request. We present \sys{}, a retrofit that attaches a 262{,}144-slot sparse memory to a frozen pretrained transformer and records every learned unit of knowledge, a \emph{Dot}, in a ledger. Memory addresses are fixed random hypervectors applied to whitened hidden states, so attaching the memory leaves the model's outputs bit-identical and a learned item is never orphaned by address drift. Each Dot writes only value rows that ordinary text rarely reads and that no earlier Dot owns, using a per-Dot optimizer under deterministic kernels. Because every Dot logs the slots it read and wrote, removing a Dot reduces to restoring rows and replaying only the Dots it could have influenced. The result is bitwise identical to a model that never learned the removed Dot. On Qwen2.5-0.5B learning 1{,}000 TriviaQA facts it did not know, in ten sequential Dots, \sys{} recalls 96.1\% of the facts (73.5\% under a prompt context never seen in training), keeps 86.3\% of facts the model already knew, and changes held-out perplexity by 1.6\%. The best full fine-tuning run keeps 51.3\% of known facts and the best LoRA run 33.0\%. We verify bit-exact removal and reset on both CPU and GPU, and we report the main cost: in our setting every removal replays all later Dots.
 \end{abstract}
+
 
 
 \section{Introduction}
@@ -83,19 +84,6 @@ A Dot is one batch of training examples from one source, here 100 question-answe
 
 All other parameters, including the address path, stay frozen. Training runs with PyTorch's deterministic algorithms enabled \citep{pytorchrepro} and a cross-entropy computed from log-softmax and one-hot targets, which avoids atomic additions on GPU. Without deterministic algorithms, two CPU runs of the same Dot differed by up to $1.1\times10^{-4}$ in the learned rows, enough to break bit-exact replay.
 
-\begin{algorithm}[t]
-\caption{Learning a Dot and recording it in the ledger}
-\label{alg:write}
-\begin{algorithmic}[1]
-\Require frozen model with memory at layer $\ell$; ledger $\mathcal{L}$ with Dots $d_1..d_n$; examples $E$
-\State $V \gets \textsc{Materialize}(\mathcal{L})$ \Comment{$V = V_0 + \sum_j \Delta_j$ in Dot order}
-\State $h \gets$ layers$_{<\ell}(E)$; \; $(R, c) \gets$ reads of $E$ at layer $\ell$
-\State $O \gets \bigcup_j W_j$ \Comment{slots owned by earlier Dots}
-\State $W \gets \mathrm{top}\text{-}B\{\, c_i \log\frac{D+1}{\mathrm{df}_i+1} : i \in R \setminus O,\ m_i \le q_{0.9}(m) \,\}$
-\State $\theta \gets V_W$; optimize $\theta$ with fresh Adam, seed $\mathrm{hash}(E)$, deterministic kernels
-\State append $d_{n+1} = (W, R, \Delta = \theta - V_W, \mathrm{seed}, E)$ to $\mathcal{L}$; \Return $\textsc{Materialize}(\mathcal{L})$
-\end{algorithmic}
-\end{algorithm}
 
 \subsection{The ledger: reset and exact removal}
 \label{sec:ledger}
@@ -138,7 +126,7 @@ A Dot trained only on the plain prompt \texttt{Question: q\textbackslash nAnswer
 \section{Results}
 \label{sec:results}
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
 \small
 \caption{Learning 1{,}000 unknown TriviaQA facts as ten sequential Dots on Qwen2.5-0.5B (T4 GPU). ``After'' is recall of the first chunk immediately after it was learned. Base model: NQ EM 5.7, NQ F1 9.9, perplexity 27.43.}
@@ -161,25 +149,25 @@ LoRA, lr $3\!\times\!10^{-4}$ & 37.4 & 3.5 & 6.3 & 0.0 & 134.57 & 100 \\
 LoRA, lr $1\!\times\!10^{-4}$ +aug & 57.9 & 22.0 & 33.0 & 4.8 & 47.72 & 100 \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \paragraph{Learning without forgetting.} Table~\ref{tab:main} and Figure~\ref{fig:tradeoff} summarize the comparison. \sys{} v1 learns 91.5\% of the 1{,}000 facts while keeping 91.3\% of the known facts. NQ-open F1 (10.3 against 9.9 for the base model) and perplexity (+1.1\%) are essentially unchanged. The best full fine-tuning run keeps 51.3\% of known facts, with NQ F1 falling to 6.9 and perplexity rising 15\%. LoRA keeps at most 33.0\%. Sparse writes also avoid interference among new facts. Figure~\ref{fig:perdot} shows recall of each Dot after all ten were learned. Under \sys{} the first Dot stays at 96\%, while full fine-tuning and LoRA show a recency curve, with the first chunk at 62\% and 28\% respectively.
 
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\begin{minipage}[t]{0.48\linewidth}
+\begin{minipage}[t]{0.40\textwidth}
 \centering
 \includegraphics[width=\linewidth]{figures/per_dot_recall.pdf}
 \caption{Recall of each Dot's facts after all ten Dots were learned. Baselines forget earlier chunks; \sys{} does not.}
 \label{fig:perdot}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.48\linewidth}
+\begin{minipage}[t]{0.40\textwidth}
 \centering
 \includegraphics[width=\linewidth]{figures/tradeoff.pdf}
 \caption{New facts learned against known facts kept, for every run in Table~\ref{tab:main}.}
 \label{fig:tradeoff}
 \end{minipage}
-\end{figure}
+\end{figure*}
 
 \paragraph{Context generalization.} \sys{} v1 recalls taught facts in the training format (91.5\%) but only 10.5\% of them when the question follows an unseen three-shot prefix, below full fine-tuning (51.0\%). The memory is addressed through context-dependent hidden states, and v1 trained only one context. Training each fact in two additional contexts (v2) raises unseen-context recall to 73.5\%, above every baseline, including full fine-tuning on the same augmented data (61.0\%). The cost is retention: known facts kept falls from 91.3\% to 86.3\%, because v2 writes twice as many rows.
 
@@ -188,10 +176,10 @@ LoRA, lr $1\!\times\!10^{-4}$ +aug & 57.9 & 22.0 & 33.0 & 4.8 & 47.72 & 100 \\
 
 \begin{table}[t]
 \centering
-\small
+\footnotesize
 \caption{Removing Dot 1 after all ten Dots were learned (T4 GPU). ``Equal to never learned'' compares the full value table bitwise with a model that learned only Dots 2--10.}
 \label{tab:removal}
-\begin{tabular}{llcccc}
+\resizebox{\columnwidth}{!}{\begin{tabular}{llcccc}
 \toprule
 Version & Operation & Dot 1 EM & Dot 2 EM & Known kept & Time \\
 \midrule
@@ -201,10 +189,10 @@ v1 & exact (replay 9 Dots) & 6 & 97 & 92.3 & 194\,s \\
 v2 & fast (drop $\Delta_1$) & 4 & 58 & 90.3 & $<$0.1\,s \\
 v2 & exact (replay 9 Dots) & 6 & 98 & 87.3 & 718\,s \\
 \midrule
-\multicolumn{6}{l}{Exact removal equal to never learned: \textbf{yes} (v1 and v2, T4; v1 on CPU and in a 3-Dot smoke test)} \\
-\multicolumn{6}{l}{Reset: value-table hash and output logits equal to the original model: \textbf{yes}} \\
+\multicolumn{6}{l}{Exact removal = never learned: \textbf{yes} (v1, v2 on T4; v1 on CPU)} \\
+\multicolumn{6}{l}{Reset: weights hash and logits equal the original: \textbf{yes}} \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 Table~\ref{tab:removal} reports removal of the first Dot. Exact removal produced a value table bitwise identical to a model that learned only Dots 2--10, in every configuration we ran: v1 and v2 on the T4 GPU and v1 on the laptop CPU. Recall of the removed facts falls to 6\%. This equals the never-learned model, which answers 6\% of them, presumably because some facts can be inferred from facts in other Dots. Dot 2's recall is 97--98\% after replay.
@@ -215,7 +203,57 @@ Fast removal is instant but damages later Dots: Dot 2 falls from 93\% to 57\%, b
 
 \subsection{What makes writes safe}
 
-\begin{table}[t]
+
+Table~\ref{tab:ablation} isolates the components. Plain SGD barely moves the memory: the residual stream at layer 15 is large relative to the updated rows, and Adam's normalized steps are needed. Background statistics drawn only from plain text leave the question-answer format's own slots looking rare, so writes land on slots that every question reads. Adding Q\&A-format text to the background raises known-fact retention from 77\% to 87\%. Excluding the 10\% of slots with the highest background read mass raises it to 98\%; more steps then recover acquisition. In the earlier synthetic-memory prototype (Appendix~\ref{app:proto}), ownership stopped new Dots from overwriting older ones. In the full ten-Dot runs here, earlier Dots also keep their recall (Figure~\ref{fig:perdot}).
+
+\paragraph{Cost.} A v1 Dot of 100 facts took about 21\,s on the T4 and 380\,s on the laptop CPU. The ledger stored 10.3\,MiB per Dot for v1 and 20.6\,MiB for v2. Most of this is the logged deltas, which can be recomputed from the logged text when space matters.
+
+\section*{Limitations}
+\label{sec:limits}
+
+\begin{itemize}
+  \item \textbf{Scale and scope.} One 0.5B model, one memory layer and one dataset of short factual answers. We do not show that memory writes can teach skills or longer documents. A 2026 retrofit study reported only small task gains from sparse memory finetuning \citep{gupta2026smf}.
+  \item \textbf{Removal cost.} With 100\% fan-out, exact removal replays every later Dot. Reducing fan-out, for example by restricting a Dot's reads during training to a source-specific shard of slots, or by keeping periodic snapshots, is future work.
+  \item \textbf{Retention trade-off.} Context augmentation improves generalization but lowers known-fact retention from 91.3\% to 86.3\%.
+  \item \textbf{Baselines.} We swept three learning rates per baseline at a fixed step budget. Other schedules, replay, or regularization might change their retention. \sys{} also used more steps per Dot (120 or 240) than the baselines (60 or 120).
+  \item \textbf{Statistics.} All results are single runs. \sys{} is deterministic given the data order, but we did not vary data order, fact sets, or the memory's random seed.
+  \item \textbf{Exactness boundary.} Proposition~\ref{prop:exact} covers knowledge written by Dots. Knowledge from pretraining is not removable by this mechanism, and facts the model can re-derive from remaining Dots are not leakage.
+\end{itemize}
+
+\section*{Ethical Considerations}
+
+A model that keeps learning on a user's device learns whatever it is given, including false or harmful material. Small numbers of poisoned documents can backdoor models regardless of size \citep{souly2025poisoning}. A per-source ledger helps here: any source can be audited and exactly removed. It also supports data-deletion requests, which approximate unlearning cannot reliably meet \citep{zhang2025quant}. Sharing Dots between users would make users distributors of what the Dots encode. Model-weight versioning systems such as Git-Theta \citep{kandpal2023gittheta} show how such sharing could be tracked.
+
+\section{Conclusion}
+
+\sys{} retrofits a frozen language model with a sparse memory whose fixed hyperdimensional addresses, protected and owned write sets, and deterministic per-Dot training make continual factual learning both low-interference and exactly reversible. On Qwen2.5-0.5B it learns 96.1\% of 1{,}000 new facts while keeping 86.3\% of known facts, compared with at most 51.3\% for tuned full fine-tuning. Removing any Dot yields a model bitwise identical to one that never learned it. The open problems are removal cost under full fan-out and evidence at larger scale and beyond facts.
+
+\section*{Use of AI Assistance}
+An AI assistant helped with code, experiment scripts and drafting. The author verified the results and the text and is responsible for the content.
+
+\bibliography{references}
+\bibliographystyle{acl_natbib}
+
+\appendix
+\section{Algorithm and ablations}
+\label{app:algo}
+Code, data subsets and result files are released in a public repository (link withheld for review).
+
+\begin{algorithm}[t]
+\caption{Learning a Dot and recording it in the ledger}
+\label{alg:write}
+\begin{algorithmic}[1]
+\Require frozen model with memory at layer $\ell$; ledger $\mathcal{L}$ with Dots $d_1..d_n$; examples $E$
+\State $V \gets \textsc{Materialize}(\mathcal{L})$ \Comment{$V = V_0 + \sum_j \Delta_j$ in Dot order}
+\State $h \gets$ layers$_{<\ell}(E)$; \; $(R, c) \gets$ reads of $E$ at layer $\ell$
+\State $O \gets \bigcup_j W_j$ \Comment{slots owned by earlier Dots}
+\State $W \gets \mathrm{top}\text{-}B\{\, c_i \log\frac{D+1}{\mathrm{df}_i+1} : i \in R \setminus O,\ m_i \le q_{0.9}(m) \,\}$
+\State $\theta \gets V_W$; optimize $\theta$ with fresh Adam, seed $\mathrm{hash}(E)$, deterministic kernels
+\State append $d_{n+1} = (W, R, \Delta = \theta - V_W, \mathrm{seed}, E)$ to $\mathcal{L}$; \Return $\textsc{Materialize}(\mathcal{L})$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{table}[h]
 \centering
 \small
 \caption{Single-Dot ablations on CPU (100 facts learned; 100 known facts). Rows are cumulative unless noted.}
@@ -239,40 +277,7 @@ budget $B=1{,}000$ (Adam 0.03, Q\&A background) & 48 & 96 \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:ablation} isolates the components. Plain SGD barely moves the memory: the residual stream at layer 15 is large relative to the updated rows, and Adam's normalized steps are needed. Background statistics drawn only from plain text leave the question-answer format's own slots looking rare, so writes land on slots that every question reads. Adding Q\&A-format text to the background raises known-fact retention from 77\% to 87\%. Excluding the 10\% of slots with the highest background read mass raises it to 98\%; more steps then recover acquisition. In the earlier synthetic-memory prototype (Appendix~\ref{app:proto}), ownership stopped new Dots from overwriting older ones. In the full ten-Dot runs here, earlier Dots also keep their recall (Figure~\ref{fig:perdot}).
 
-\paragraph{Cost.} A v1 Dot of 100 facts took about 21\,s on the T4 and 380\,s on the laptop CPU. The ledger stored 10.3\,MiB per Dot for v1 and 20.6\,MiB for v2. Most of this is the logged deltas, which can be recomputed from the logged text when space matters.
-
-\section{Limitations}
-\label{sec:limits}
-
-\begin{itemize}
-  \item \textbf{Scale and scope.} One 0.5B model, one memory layer and one dataset of short factual answers. We do not show that memory writes can teach skills or longer documents. A 2026 retrofit study reported only small task gains from sparse memory finetuning \citep{gupta2026smf}.
-  \item \textbf{Removal cost.} With 100\% fan-out, exact removal replays every later Dot. Reducing fan-out, for example by restricting a Dot's reads during training to a source-specific shard of slots, or by keeping periodic snapshots, is future work.
-  \item \textbf{Retention trade-off.} Context augmentation improves generalization but lowers known-fact retention from 91.3\% to 86.3\%.
-  \item \textbf{Baselines.} We swept three learning rates per baseline at a fixed step budget. Other schedules, replay, or regularization might change their retention. \sys{} also used more steps per Dot (120 or 240) than the baselines (60 or 120).
-  \item \textbf{Statistics.} All results are single runs. \sys{} is deterministic given the data order, but we did not vary data order, fact sets, or the memory's random seed.
-  \item \textbf{Exactness boundary.} Proposition~\ref{prop:exact} covers knowledge written by Dots. Knowledge from pretraining is not removable by this mechanism, and facts the model can re-derive from remaining Dots are not leakage.
-\end{itemize}
-
-\section{Broader Impact}
-
-A model that keeps learning on a user's device learns whatever it is given, including false or harmful material. Small numbers of poisoned documents can backdoor models regardless of size \citep{souly2025poisoning}. A per-source ledger helps here: any source can be audited and exactly removed. It also supports data-deletion requests, which approximate unlearning cannot reliably meet \citep{zhang2025quant}. Sharing Dots between users would make users distributors of what the Dots encode. Model-weight versioning systems such as Git-Theta \citep{kandpal2023gittheta} show how such sharing could be tracked.
-
-\section{Conclusion}
-
-\sys{} retrofits a frozen language model with a sparse memory whose fixed hyperdimensional addresses, protected and owned write sets, and deterministic per-Dot training make continual factual learning both low-interference and exactly reversible. On Qwen2.5-0.5B it learns 96.1\% of 1{,}000 new facts while keeping 86.3\% of known facts, compared with at most 51.3\% for tuned full fine-tuning. Removing any Dot yields a model bitwise identical to one that never learned it. The open problems are removal cost under full fan-out and evidence at larger scale and beyond facts.
-
-\section*{Reproducibility Statement}
-The code, notebooks and exact fact lists will be released in a public repository upon acceptance; an anonymized copy is available to reviewers on request. All data come from public datasets: TriviaQA, NaturalQuestions-open and WikiText-2.
-
-\section*{Use of AI Assistance}
-An AI assistant helped with code, experiment scripts and drafting. The author verified the results and the text and is responsible for the content.
-
-\bibliography{references}
-\bibliographystyle{tmlr}
-
-\appendix
 \section{Prompts}
 \label{app:prompts}
 Training and plain-format evaluation use \texttt{Question: \{q\}\textbackslash nAnswer:} with target \texttt{ \{a\}\textbackslash n}; loss is on target tokens only.

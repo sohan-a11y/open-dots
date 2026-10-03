@@ -31,7 +31,9 @@ b = re.sub(r"\\section\*\{Code and Data Availability\}.*?\n\n",
            "\\\\section*{Reproducibility Statement}\nThe code, notebooks and exact fact lists will be released in a public "
            "repository upon acceptance; an anonymized copy is available to reviewers on request. "
            "All data come from public datasets: TriviaQA, NaturalQuestions-open and WikiText-2.\n\n", b, flags=re.S)
-b = re.sub(r"\\section\*\{Use of AI Assistance\}.*?\n\n", "", b, flags=re.S)
+b = re.sub(r"\\section\*\{Use of AI Assistance\}.*?\n\n",
+           "\\\\section*{Use of AI Assistance}\nAn AI assistant helped with code, experiment scripts and drafting. "
+           "The author verified the results and the text and is responsible for the content.\n\n", b, flags=re.S)
 b = re.sub(r"\\section\*\{Author Contributions, Conflicts of Interest and Funding\}.*?\n\n", "", b, flags=re.S)
 tmlr = (r"\documentclass[10pt]{article}" "\n" r"\usepackage[submit]{tmlr}" "\n" + COMMON_PKGS +
         r"\usepackage{hyperref}" "\n"
