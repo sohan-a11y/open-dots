@@ -1,0 +1,14 @@
+Dear Editors,
+
+I submit the manuscript "DOTS: Exactly Removable Continual Learning for Frozen Language Models via Hyperdimensional Sparse Memory" for consideration as a regular paper.
+
+Language models that keep learning after deployment must also be able to forget on request. Dense updates cause forgetting of existing knowledge, and approximate unlearning methods can be undone, for example by quantization. The manuscript presents DOTS, a retrofit that attaches a sparse memory with fixed random hypervector addresses to a frozen pretrained transformer and records every write in a ledger. The main contributions are: (1) a training-free retrofit that leaves model outputs bit-identical at attachment; (2) a write rule that keeps interference low; (3) a ledger-based removal procedure whose result is bitwise identical to a model that never learned the removed data, with a proof sketch and verification on CPU and GPU; and (4) an empirical comparison on Qwen2.5-0.5B learning 1,000 unknown facts, where DOTS recalls 96.1% of them while keeping 86.3% of known facts, against at most 51.3% for tuned full fine-tuning and 33.0% for LoRA.
+
+The manuscript states its limitations: one 0.5B model, factual question answering only, single runs, and a removal cost that grows with the number of later writes. Code, data subsets and result files are public at https://github.com/sohan-a11y/open-dots.
+
+This work is original, has not been published, and is not under review elsewhere. A preprint may be available on arXiv or Zenodo. An AI system (Claude, Anthropic) assisted with code, experiments and drafting; I reviewed all content and take full responsibility for it. I have no competing interests and received no funding.
+
+Sincerely,
+Sohan Merugu
+Independent Researcher
+sohanmerugu@gmail.com
